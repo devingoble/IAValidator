@@ -4,6 +4,9 @@ using System.CommandLine.Invocation;
 using System.Threading.Tasks;
 using IAValidator.Core.Interfaces;
 using IAValidator.Infrastructure;
+
+using MediatR;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Serilog;
@@ -87,6 +90,9 @@ namespace IAValidator.CLI
                 builder.AddConsole();
                 builder.AddDebug();
             });
+
+            services.AddMediatR(typeof(Program));
+
             services.AddTransient<App>();
         }
     }

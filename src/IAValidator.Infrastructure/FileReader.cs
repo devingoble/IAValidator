@@ -1,5 +1,5 @@
-﻿using IAValidator.Core.Interfaces;
-
+﻿using IAValidator.Core.DTOs;
+using IAValidator.Core.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace IAValidator.Infrastructure
 {
-    public class FileReader
+    public class FileReader : IFileReader
     {
         IAppLogger<FileReader> _logger;
         public FileReader(IAppLogger<FileReader> appLogger)
@@ -16,19 +16,42 @@ namespace IAValidator.Infrastructure
             _logger = appLogger;
         }
 
-        public async Task<string> GetFileFromPath(string path)
+        private async Task<string> GetFileFromPath(string path)
         {
             var stream = new FileStream(path, FileMode.Open);
-            var ms = new MemoryStream();
-            await stream.CopyToAsync(ms);
+            var sr = new StreamReader(stream);
+            var content = await sr.ReadToEndAsync();
 
-            var created = File.GetCreationTime(path);
+            _logger.LogInformation("Read file with {bytes} bytes from {path}", stream.Length, path);
 
-            _logger.LogInformation("Read file with {bytes} bytes from {path}", ms.Length, path);
+            return content;
+        }
 
-            //return new SubpoenaFile(created, ms, path);
+        public async Task<FileResult> GetFileContentsFromPath(string path)
+        {
+            var result = new FileResult();
+            string content;
 
-            return "";
+            try
+            {
+                content = await GetFileFromPath(path);
+                result.SetContent(content);
+            }
+            catch (Exception ex)
+            {
+                result.SetError(ex);
+                _logger.LogError(result.Exception!, "Could not import file from path {path}", path);
+            }
+
+            if (result.IsSuccess)
+            {
+                if (string.IsNullOrWhiteSpace(result.ContentString))
+                {
+                    result.SetError(new Exception("The supplied file was empty"));
+                }
+            }
+
+            return result;
         }
     }
 }
